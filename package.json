@@ -1,0 +1,22 @@
+{
+  "name": "com.oxentegames.oxoptimizer",
+  "version": "1.0.0",
+  "displayName": "OxOptimizer",
+  "description": "WebGL optimization toolkit for Unity by OxenteGames. Audits export settings, textures, models, audio clips and build logs, and applies a mobile-safe WebGL memory preset validated on real devices.",
+  "unity": "2021.2",
+  "keywords": [
+    "webgl",
+    "optimization",
+    "build-size",
+    "memory",
+    "mobile",
+    "editor-tools"
+  ],
+  "author": {
+    "name": "OxenteGames",
+    "url": "https://github.com/OxenteGames"
+  },
+  "license": "MIT",
+  "documentationUrl": "https://github.com/OxenteGames/OxOptimizer#readme",
+  "changelogUrl": "https://github.com/OxenteGames/OxOptimizer/blob/main/CHANGELOG.md"
+}

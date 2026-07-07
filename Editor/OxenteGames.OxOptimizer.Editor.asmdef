@@ -1,0 +1,16 @@
+{
+    "name": "OxenteGames.OxOptimizer.Editor",
+    "rootNamespace": "OxenteGames.OxOptimizer",
+    "references": [],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
