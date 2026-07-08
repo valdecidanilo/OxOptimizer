@@ -10,7 +10,9 @@ namespace OxenteGames.OxOptimizer
     /// </summary>
     public static class OxGui
     {
-        public static readonly Color Accent = new Color32(232, 122, 30, 255); // OxenteGames orange
+
+        public static readonly Color Accent = new Color32(7, 236, 137, 255);
+        public static readonly Color Dark = new Color32(15, 36, 58, 255);
         public static readonly Color Pass = new Color32(93, 201, 103, 255);
         public static readonly Color Fail = new Color32(229, 77, 66, 255);
 

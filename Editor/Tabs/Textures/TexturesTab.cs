@@ -16,6 +16,10 @@ namespace OxenteGames.OxOptimizer.Tabs
 
         private static bool _isAnalyzing;
         private static bool _includeFilesFromPackages;
+        private static List<string> _pendingTexturePaths;
+        private static List<TextureTreeItem> _pendingTreeElements;
+        private static int _pendingIdIncrement;
+        private const int BatchSize = 25;
 
         public static void RenderGUI()
         {
@@ -31,6 +35,10 @@ namespace OxenteGames.OxOptimizer.Tabs
             EditorGUILayout.EndHorizontal();
             GUILayout.FlexibleSpace();
             _textureCompressionTree?.OnGUI(rect);
+            if (_isAnalyzing)
+            {
+                DrawLoadingOverlay(rect);
+            }
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.Space(5);
@@ -147,12 +155,30 @@ namespace OxenteGames.OxOptimizer.Tabs
             return usedTexturePaths.ToList();
         }
 
-        static void AnalyzeTextures()
+        public static void AnalyzeTextures()
         {
+            if (_isAnalyzing)
+            {
+                return;
+            }
+
             _isAnalyzing = true;
+            _pendingTexturePaths = null;
+            _pendingTreeElements = null;
+            _pendingIdIncrement = 0;
             if (OxOptimizerWindow.EditorWindowInstance != null)
             {
                 OxOptimizerWindow.EditorWindowInstance.Repaint();
+            }
+
+            EditorApplication.delayCall += StartAnalyzeTextures;
+        }
+
+        private static void StartAnalyzeTextures()
+        {
+            if (!_isAnalyzing)
+            {
+                return;
             }
 
             var usedTexturePaths = new HashSet<string>();
@@ -160,31 +186,68 @@ namespace OxenteGames.OxOptimizer.Tabs
             GetUsedTexturesInBuildScenes().ForEach(path => usedTexturePaths.Add(path));
             GetUsedTexturesInResources().ForEach(path => usedTexturePaths.Add(path));
 
-            var treeElements = new List<TextureTreeItem>();
-            var idIncrement = 0;
-            var root = new TextureTreeItem("Root", -1, idIncrement, null, null);
-            treeElements.Add(root);
+            _pendingTexturePaths = usedTexturePaths.ToList();
+            _pendingTreeElements = new List<TextureTreeItem>();
+            _pendingTreeElements.Add(new TextureTreeItem("Root", -1, _pendingIdIncrement, null, null));
+            EditorApplication.update += UpdateAnalyzeTextures;
+        }
 
-            foreach (var texturePath in usedTexturePaths)
+        private static void UpdateAnalyzeTextures()
+        {
+            try
             {
-                if (texturePath.StartsWith("Packages/") && !_includeFilesFromPackages)
+                var processed = 0;
+                while (_pendingTexturePaths != null && _pendingIdIncrement < _pendingTexturePaths.Count && processed < BatchSize)
                 {
-                    continue;
+                    var texturePath = _pendingTexturePaths[_pendingIdIncrement];
+                    _pendingIdIncrement++;
+                    processed++;
+
+                    if (texturePath.StartsWith("Packages/") && !_includeFilesFromPackages)
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        var textureImporter = (TextureImporter)AssetImporter.GetAtPath(texturePath);
+                        _pendingTreeElements.Add(new TextureTreeItem("Texture2D", 0, _pendingTreeElements.Count, texturePath, textureImporter));
+                    }
+                    catch (Exception)
+                    {
+                        Debug.LogWarning("Failed to analyze texture at path: " + texturePath);
+                    }
                 }
 
-                idIncrement++;
-                try
+                if (_pendingTexturePaths == null || _pendingIdIncrement >= _pendingTexturePaths.Count)
                 {
-                    var textureImporter = (TextureImporter) AssetImporter.GetAtPath(texturePath);
-                    treeElements.Add(new TextureTreeItem("Texture2D", 0, idIncrement, texturePath, textureImporter));
+                    CompleteAnalyzeTextures();
+                    return;
                 }
-                catch (Exception)
+
+                if (OxOptimizerWindow.EditorWindowInstance != null)
                 {
-                    Debug.LogWarning("Failed to analyze texture at path: " + texturePath);
+                    OxOptimizerWindow.EditorWindowInstance.Repaint();
                 }
             }
+            catch (Exception e)
+            {
+                Debug.LogError(e);
+                CompleteAnalyzeTextures();
+            }
+        }
 
-            var treeModel = new TreeModel<TextureTreeItem>(treeElements);
+        private static void CompleteAnalyzeTextures()
+        {
+            EditorApplication.update -= UpdateAnalyzeTextures;
+
+            if (_pendingTreeElements == null)
+            {
+                _isAnalyzing = false;
+                return;
+            }
+
+            var treeModel = new TreeModel<TextureTreeItem>(_pendingTreeElements);
             var treeViewState = new TreeViewState();
             if (_multiColumnHeaderState == null)
                 _multiColumnHeaderState = new MultiColumnHeaderState(new[]
@@ -201,10 +264,33 @@ namespace OxenteGames.OxOptimizer.Tabs
                 });
             _textureCompressionTree = new TextureTree(treeViewState, new MultiColumnHeader(_multiColumnHeaderState), treeModel);
             _isAnalyzing = false;
+            _pendingTexturePaths = null;
+            _pendingTreeElements = null;
             if (OxOptimizerWindow.EditorWindowInstance != null)
             {
                 OxOptimizerWindow.EditorWindowInstance.Repaint();
             }
+        }
+
+        private static void DrawLoadingOverlay(Rect rect)
+        {
+            const float overlayWidth = 180f;
+            const float overlayHeight = 64f;
+            var overlayRect = new Rect(
+                rect.x + (rect.width - overlayWidth) * 0.5f,
+                rect.y + (rect.height - overlayHeight) * 0.5f,
+                overlayWidth,
+                overlayHeight);
+
+            GUI.Box(overlayRect, GUIContent.none, EditorStyles.helpBox);
+
+            var spinnerIndex = (int)(EditorApplication.timeSinceStartup * 12.0) % 12;
+            var spinnerIcon = EditorGUIUtility.IconContent($"WaitSpin{spinnerIndex:00}");
+            var iconRect = new Rect(overlayRect.x + (overlayRect.width - 16f) * 0.5f, overlayRect.y + 8f, 16f, 16f);
+            GUI.Label(iconRect, spinnerIcon);
+
+            var labelRect = new Rect(overlayRect.x + 8f, overlayRect.y + 30f, overlayRect.width - 16f, 20f);
+            GUI.Label(labelRect, OxLoc.T("Analyzing...", "Analisando..."), EditorStyles.centeredGreyMiniLabel);
         }
     }
 }

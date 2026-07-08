@@ -10,6 +10,7 @@ namespace OxenteGames.OxOptimizer
         public const string RepositoryUrl = "https://github.com/OxenteGames/OxOptimizer";
 
         private int _activeTab;
+        private int _lastActiveTab = -1;
 
         // tab names stay in English on purpose — they mirror Unity's own terminology
         private static readonly string[] TabNames = { "Export", "Memory", "Textures", "Models", "Audio", "Fonts", "Build logs" };
@@ -31,6 +32,12 @@ namespace OxenteGames.OxOptimizer
 
             _activeTab = GUILayout.Toolbar(_activeTab, TabNames, GUILayout.Height(24));
             GUILayout.Space(4);
+
+            if (_activeTab != _lastActiveTab)
+            {
+                HandleTabChanged(_activeTab);
+                _lastActiveTab = _activeTab;
+            }
 
             switch (_activeTab)
             {
@@ -71,6 +78,22 @@ namespace OxenteGames.OxOptimizer
                 Application.OpenURL(RepositoryUrl);
             EditorGUILayout.EndHorizontal();
             GUILayout.Space(4);
+        }
+
+        private void HandleTabChanged(int tabIndex)
+        {
+            switch (tabIndex)
+            {
+                case 2:
+                    TexturesTab.AnalyzeTextures();
+                    break;
+                case 3:
+                    ModelsTab.AnalyzeModels();
+                    break;
+                case 4:
+                    AudioTab.AnalyzeAudio();
+                    break;
+            }
         }
 
         private void OnDestroy()

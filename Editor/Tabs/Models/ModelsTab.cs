@@ -16,6 +16,10 @@ namespace OxenteGames.OxOptimizer.Tabs
 
         private static bool _isAnalyzing;
         private static bool _includeFilesFromPackages;
+        private static List<string> _pendingModelPaths;
+        private static List<ModelTreeItem> _pendingTreeElements;
+        private static int _pendingPathIndex;
+        private const int BatchSize = 25;
 
         private static readonly List<string> _modelFormats = new List<string>() { ".fbx", ".dae", ".3ds", ".dxf", ".obj" };
 
@@ -33,6 +37,10 @@ namespace OxenteGames.OxOptimizer.Tabs
             EditorGUILayout.EndHorizontal();
             GUILayout.FlexibleSpace();
             _modelTree?.OnGUI(rect);
+            if (_isAnalyzing)
+            {
+                DrawLoadingOverlay(rect);
+            }
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.Space(5);
@@ -163,13 +171,31 @@ namespace OxenteGames.OxOptimizer.Tabs
                    _modelFormats.Contains(System.IO.Path.GetExtension(assetDependency).ToLowerInvariant());
         }
 
-        static void AnalyzeModels()
+        public static void AnalyzeModels()
         {
+            if (_isAnalyzing)
+            {
+                return;
+            }
+
             _isAnalyzing = true;
+            _pendingModelPaths = null;
+            _pendingTreeElements = null;
+            _pendingPathIndex = 0;
 
             if (OxOptimizerWindow.EditorWindowInstance != null)
             {
                 OxOptimizerWindow.EditorWindowInstance.Repaint();
+            }
+
+            EditorApplication.delayCall += StartAnalyzeModels;
+        }
+
+        private static void StartAnalyzeModels()
+        {
+            if (!_isAnalyzing)
+            {
+                return;
             }
 
             var usedModelPaths = new HashSet<string>();
@@ -177,32 +203,68 @@ namespace OxenteGames.OxOptimizer.Tabs
             GetUsedModelsInBuildScenes().ForEach(path => usedModelPaths.Add(path));
             GetUsedModelsInResources().ForEach(path => usedModelPaths.Add(path));
 
-            var treeElements = new List<ModelTreeItem>();
-            var idIncrement = 0;
-            var root = new ModelTreeItem("Root", -1, idIncrement, null, null);
-            treeElements.Add(root);
+            _pendingModelPaths = usedModelPaths.ToList();
+            _pendingTreeElements = new List<ModelTreeItem>();
+            _pendingTreeElements.Add(new ModelTreeItem("Root", -1, 0, null, null));
+            EditorApplication.update += UpdateAnalyzeModels;
+        }
 
-            foreach (var modelPath in usedModelPaths)
+        private static void UpdateAnalyzeModels()
+        {
+            try
             {
-                if (modelPath.StartsWith("Packages/") && !_includeFilesFromPackages)
+                var processed = 0;
+                while (_pendingModelPaths != null && _pendingPathIndex < _pendingModelPaths.Count && processed < BatchSize)
                 {
-                    continue;
+                    var modelPath = _pendingModelPaths[_pendingPathIndex];
+                    _pendingPathIndex++;
+                    processed++;
+
+                    if (modelPath.StartsWith("Packages/") && !_includeFilesFromPackages)
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        var modelImporter = (ModelImporter)AssetImporter.GetAtPath(modelPath);
+                        _pendingTreeElements.Add(new ModelTreeItem("Model", 0, _pendingTreeElements.Count, modelPath, modelImporter));
+                    }
+                    catch (Exception)
+                    {
+                        Debug.LogWarning("Failed to analyze model at path: " + modelPath);
+                    }
                 }
 
-                idIncrement++;
-
-                try
+                if (_pendingModelPaths == null || _pendingPathIndex >= _pendingModelPaths.Count)
                 {
-                    var modelImporter = (ModelImporter)AssetImporter.GetAtPath(modelPath);
-                    treeElements.Add(new ModelTreeItem("Model", 0, idIncrement, modelPath, modelImporter));
+                    CompleteAnalyzeModels();
+                    return;
                 }
-                catch (Exception)
+
+                if (OxOptimizerWindow.EditorWindowInstance != null)
                 {
-                    Debug.LogWarning("Failed to analyze model at path: " + modelPath);
+                    OxOptimizerWindow.EditorWindowInstance.Repaint();
                 }
             }
+            catch (Exception e)
+            {
+                Debug.LogError(e);
+                CompleteAnalyzeModels();
+            }
+        }
 
-            var treeModel = new TreeModel<ModelTreeItem>(treeElements);
+        private static void CompleteAnalyzeModels()
+        {
+            EditorApplication.update -= UpdateAnalyzeModels;
+
+            if (_pendingTreeElements == null)
+            {
+                _isAnalyzing = false;
+                return;
+            }
+
+            var treeModel = new TreeModel<ModelTreeItem>(_pendingTreeElements);
             var treeViewState = new TreeViewState();
 
             if (_multiColumnHeaderState == null)
@@ -224,11 +286,34 @@ namespace OxenteGames.OxOptimizer.Tabs
 
             _modelTree = new ModelTree(treeViewState, new MultiColumnHeader(_multiColumnHeaderState), treeModel);
             _isAnalyzing = false;
+            _pendingModelPaths = null;
+            _pendingTreeElements = null;
 
             if (OxOptimizerWindow.EditorWindowInstance != null)
             {
                 OxOptimizerWindow.EditorWindowInstance.Repaint();
             }
+        }
+
+        private static void DrawLoadingOverlay(Rect rect)
+        {
+            const float overlayWidth = 180f;
+            const float overlayHeight = 64f;
+            var overlayRect = new Rect(
+                rect.x + (rect.width - overlayWidth) * 0.5f,
+                rect.y + (rect.height - overlayHeight) * 0.5f,
+                overlayWidth,
+                overlayHeight);
+
+            GUI.Box(overlayRect, GUIContent.none, EditorStyles.helpBox);
+
+            var spinnerIndex = (int)(EditorApplication.timeSinceStartup * 12.0) % 12;
+            var spinnerIcon = EditorGUIUtility.IconContent($"WaitSpin{spinnerIndex:00}");
+            var iconRect = new Rect(overlayRect.x + (overlayRect.width - 16f) * 0.5f, overlayRect.y + 8f, 16f, 16f);
+            GUI.Label(iconRect, spinnerIcon);
+
+            var labelRect = new Rect(overlayRect.x + 8f, overlayRect.y + 30f, overlayRect.width - 16f, 20f);
+            GUI.Label(labelRect, OxLoc.T("Analyzing...", "Analisando..."), EditorStyles.centeredGreyMiniLabel);
         }
     }
 }

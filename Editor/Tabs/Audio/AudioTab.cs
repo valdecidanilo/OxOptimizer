@@ -16,6 +16,10 @@ namespace OxenteGames.OxOptimizer.Tabs
 
         private static bool _isAnalyzing;
         private static bool _includeFilesFromPackages;
+        private static List<string> _pendingAudioPaths;
+        private static List<AudioTreeItem> _pendingTreeElements;
+        private static int _pendingPathIndex;
+        private const int BatchSize = 25;
 
         public static void RenderGUI()
         {
@@ -31,6 +35,10 @@ namespace OxenteGames.OxOptimizer.Tabs
             EditorGUILayout.EndHorizontal();
             GUILayout.FlexibleSpace();
             _audioCompressionTree?.OnGUI(rect);
+            if (_isAnalyzing)
+            {
+                DrawLoadingOverlay(rect);
+            }
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.Space(5);
@@ -142,12 +150,30 @@ namespace OxenteGames.OxOptimizer.Tabs
             return usedAudioPaths.ToList();
         }
 
-        static void AnalyzeAudio()
+        public static void AnalyzeAudio()
         {
+            if (_isAnalyzing)
+            {
+                return;
+            }
+
             _isAnalyzing = true;
+            _pendingAudioPaths = null;
+            _pendingTreeElements = null;
+            _pendingPathIndex = 0;
             if (OxOptimizerWindow.EditorWindowInstance != null)
             {
                 OxOptimizerWindow.EditorWindowInstance.Repaint();
+            }
+
+            EditorApplication.delayCall += StartAnalyzeAudio;
+        }
+
+        private static void StartAnalyzeAudio()
+        {
+            if (!_isAnalyzing)
+            {
+                return;
             }
 
             var usedAudioPaths = new HashSet<string>();
@@ -155,31 +181,68 @@ namespace OxenteGames.OxOptimizer.Tabs
             GetUsedAudioInBuildScenes().ForEach(path => usedAudioPaths.Add(path));
             GetUsedAudioInResources().ForEach(path => usedAudioPaths.Add(path));
 
-            var treeElements = new List<AudioTreeItem>();
-            var idIncrement = 0;
-            var root = new AudioTreeItem("Root", -1, idIncrement, null, null);
-            treeElements.Add(root);
+            _pendingAudioPaths = usedAudioPaths.ToList();
+            _pendingTreeElements = new List<AudioTreeItem>();
+            _pendingTreeElements.Add(new AudioTreeItem("Root", -1, 0, null, null));
+            EditorApplication.update += UpdateAnalyzeAudio;
+        }
 
-            foreach (var audioPath in usedAudioPaths)
+        private static void UpdateAnalyzeAudio()
+        {
+            try
             {
-                if (audioPath.StartsWith("Packages/") && !_includeFilesFromPackages)
+                var processed = 0;
+                while (_pendingAudioPaths != null && _pendingPathIndex < _pendingAudioPaths.Count && processed < BatchSize)
                 {
-                    continue;
+                    var audioPath = _pendingAudioPaths[_pendingPathIndex];
+                    _pendingPathIndex++;
+                    processed++;
+
+                    if (audioPath.StartsWith("Packages/") && !_includeFilesFromPackages)
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        var audioImporter = (AudioImporter)AssetImporter.GetAtPath(audioPath);
+                        _pendingTreeElements.Add(new AudioTreeItem("AudioClip", 0, _pendingTreeElements.Count, audioPath, audioImporter));
+                    }
+                    catch (Exception)
+                    {
+                        Debug.LogWarning("Failed to analyze audio clip at path: " + audioPath);
+                    }
                 }
 
-                idIncrement++;
-                try
+                if (_pendingAudioPaths == null || _pendingPathIndex >= _pendingAudioPaths.Count)
                 {
-                    var audioImporter = (AudioImporter)AssetImporter.GetAtPath(audioPath);
-                    treeElements.Add(new AudioTreeItem("AudioClip", 0, idIncrement, audioPath, audioImporter));
+                    CompleteAnalyzeAudio();
+                    return;
                 }
-                catch (Exception)
+
+                if (OxOptimizerWindow.EditorWindowInstance != null)
                 {
-                    Debug.LogWarning("Failed to analyze audio clip at path: " + audioPath);
+                    OxOptimizerWindow.EditorWindowInstance.Repaint();
                 }
             }
+            catch (Exception e)
+            {
+                Debug.LogError(e);
+                CompleteAnalyzeAudio();
+            }
+        }
 
-            var treeModel = new TreeModel<AudioTreeItem>(treeElements);
+        private static void CompleteAnalyzeAudio()
+        {
+            EditorApplication.update -= UpdateAnalyzeAudio;
+
+            if (_pendingTreeElements == null)
+            {
+                _isAnalyzing = false;
+                return;
+            }
+
+            var treeModel = new TreeModel<AudioTreeItem>(_pendingTreeElements);
             var treeViewState = new TreeViewState();
             if (_multiColumnHeaderState == null)
                 _multiColumnHeaderState = new MultiColumnHeaderState(new[]
@@ -193,10 +256,33 @@ namespace OxenteGames.OxOptimizer.Tabs
                 });
             _audioCompressionTree = new AudioTree(treeViewState, new MultiColumnHeader(_multiColumnHeaderState), treeModel);
             _isAnalyzing = false;
+            _pendingAudioPaths = null;
+            _pendingTreeElements = null;
             if (OxOptimizerWindow.EditorWindowInstance != null)
             {
                 OxOptimizerWindow.EditorWindowInstance.Repaint();
             }
+        }
+
+        private static void DrawLoadingOverlay(Rect rect)
+        {
+            const float overlayWidth = 180f;
+            const float overlayHeight = 64f;
+            var overlayRect = new Rect(
+                rect.x + (rect.width - overlayWidth) * 0.5f,
+                rect.y + (rect.height - overlayHeight) * 0.5f,
+                overlayWidth,
+                overlayHeight);
+
+            GUI.Box(overlayRect, GUIContent.none, EditorStyles.helpBox);
+
+            var spinnerIndex = (int)(EditorApplication.timeSinceStartup * 12.0) % 12;
+            var spinnerIcon = EditorGUIUtility.IconContent($"WaitSpin{spinnerIndex:00}");
+            var iconRect = new Rect(overlayRect.x + (overlayRect.width - 16f) * 0.5f, overlayRect.y + 8f, 16f, 16f);
+            GUI.Label(iconRect, spinnerIcon);
+
+            var labelRect = new Rect(overlayRect.x + 8f, overlayRect.y + 30f, overlayRect.width - 16f, 20f);
+            GUI.Label(labelRect, OxLoc.T("Analyzing...", "Analisando..."), EditorStyles.centeredGreyMiniLabel);
         }
     }
 }
