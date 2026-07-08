@@ -128,19 +128,19 @@ namespace OxenteGames.OxOptimizer.Tabs
                     GUI.Label(cellRect, item.data.ModelName);
                     break;
                 case 1:
-                    GUI.Label(cellRect, item.data.IsReadWriteEnabled ? "yes" : "no");
+                    OxGui.GradedLabel(cellRect, item.data.IsReadWriteEnabled ? "yes" : "no", item.data.ReadWriteGrade);
                     break;
                 case 2:
-                    GUI.Label(cellRect, item.data.ArePolygonsOptimized ? "yes" : "no");
+                    OxGui.GradedLabel(cellRect, item.data.ArePolygonsOptimized ? "yes" : "no", item.data.PolygonsGrade);
                     break;
                 case 3:
-                    GUI.Label(cellRect, item.data.AreVerticesOptimized ? "yes" : "no");
+                    OxGui.GradedLabel(cellRect, item.data.AreVerticesOptimized ? "yes" : "no", item.data.VerticesGrade);
                     break;
                 case 4:
-                    GUI.Label(cellRect, item.data.MeshCompressionName);
+                    OxGui.GradedLabel(cellRect, item.data.MeshCompressionName, item.data.MeshCompressionGrade);
                     break;
                 case 5:
-                    GUI.Label(cellRect, item.data.AnimationCompressionName);
+                    OxGui.GradedLabel(cellRect, item.data.AnimationCompressionName, item.data.AnimationCompressionGrade);
                     break;
             }
         }

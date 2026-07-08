@@ -15,6 +15,63 @@ namespace OxenteGames.OxOptimizer
         public static readonly Color Dark = new Color32(15, 36, 58, 255);
         public static readonly Color Pass = new Color32(93, 201, 103, 255);
         public static readonly Color Fail = new Color32(229, 77, 66, 255);
+        // Warning (orange): a value that isn't ideal but isn't critical either.
+        public static readonly Color Warning = new Color32(240, 173, 78, 255);
+        // Pending: checks that can't be evaluated yet (they need the Build Logs analysis).
+        public static readonly Color Pending = new Color32(120, 128, 138, 255);
+
+        /// <summary>
+        /// How far a value is from the recommended setting. Drives the cell text color in the
+        /// analysis tables: Ok = white (ideal), Warning = orange, Bad = red (far from ideal).
+        /// </summary>
+        public enum Grade { Ok, Warning, Bad }
+
+        public static Color GradeColor(Grade grade)
+        {
+            switch (grade)
+            {
+                case Grade.Bad:
+                    return Fail;
+                case Grade.Warning:
+                    return Warning;
+                default:
+                    return Color.white;
+            }
+        }
+
+        private static GUIStyle _cellStyle;
+
+        /// <summary>Draws a table cell whose text color reflects how close the value is to the ideal.</summary>
+        public static void GradedLabel(Rect rect, string text, Grade grade)
+        {
+            if (_cellStyle == null)
+                _cellStyle = new GUIStyle(EditorStyles.label);
+            _cellStyle.normal.textColor = GradeColor(grade);
+            GUI.Label(rect, text, _cellStyle);
+        }
+
+        private static GUIStyle _legendStyle;
+
+        /// <summary>Explains what the cell colors in the analysis tables mean.</summary>
+        public static void GradeLegend()
+        {
+            if (_legendStyle == null)
+                _legendStyle = new GUIStyle(EditorStyles.miniLabel) { richText = true };
+
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label(OxLoc.T("Colors:", "Cores:"), EditorStyles.miniLabel, GUILayout.Width(42));
+            DrawLegendItem(OxLoc.T("ideal", "ideal"), Color.white);
+            DrawLegendItem(OxLoc.T("attention", "atenção"), Warning);
+            DrawLegendItem(OxLoc.T("far from ideal", "longe do ideal"), Fail);
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private static void DrawLegendItem(string label, Color color)
+        {
+            var hex = ColorUtility.ToHtmlStringRGB(color);
+            GUILayout.Label($"<color=#{hex}>■</color> {label}", _legendStyle, GUILayout.Width(110));
+        }
 
         private static GUIStyle _titleStyle;
         private static GUIStyle _subtitleStyle;

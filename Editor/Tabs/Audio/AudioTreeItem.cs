@@ -31,6 +31,18 @@ namespace OxenteGames.OxOptimizer.Tabs
 
         public int Quality => Mathf.RoundToInt(_platformSettings.quality * 100);
 
+        // Ideal targets (see the explanations at the bottom of the Audio tab).
+        public const int IdealQuality = 70;
+
+        // Decompress On Load keeps the clip uncompressed in RAM — not ideal for WebGL.
+        public OxGui.Grade LoadTypeGrade =>
+            _platformSettings.loadType == AudioClipLoadType.DecompressOnLoad ? OxGui.Grade.Warning : OxGui.Grade.Ok;
+
+        public OxGui.Grade QualityGrade =>
+            Quality <= IdealQuality ? OxGui.Grade.Ok
+            : Quality <= 90 ? OxGui.Grade.Warning
+            : OxGui.Grade.Bad;
+
         private readonly AudioImporter _audioImporter;
         private readonly AudioImporterSampleSettings _platformSettings;
 

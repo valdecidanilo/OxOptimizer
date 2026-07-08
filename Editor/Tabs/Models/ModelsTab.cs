@@ -30,8 +30,8 @@ namespace OxenteGames.OxOptimizer.Tabs
             EditorGUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
             EditorGUILayout.BeginVertical();
-            GUILayout.Label(OxLoc.T("Press \"Analyze models\" button to load the table.", "Clique em \"Analisar modelos\" para carregar a tabela."));
-            GUILayout.Label(OxLoc.T("Press it again when you need to refresh the data.", "Clique de novo quando precisar atualizar os dados."));
+            //GUILayout.Label(OxLoc.T("Press \"Analyze models\" button to load the table.", "Clique em \"Analisar modelos\" para carregar a tabela."));
+            //GUILayout.Label(OxLoc.T("Press it again when you need to refresh the data.", "Clique de novo quando precisar atualizar os dados."));
             EditorGUILayout.EndVertical();
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
@@ -67,33 +67,42 @@ namespace OxenteGames.OxOptimizer.Tabs
                     "Este utilitário dá uma visão geral dos modelos usados no projeto. Otimizando as configurações, você consegue reduzir consideravelmente o tamanho final do build. Clique em um modelo para selecioná-lo na aba Project."),
                 EditorStyles.wordWrappedLabel);
 
+            OxGui.GradeLegend();
+
             BuildExplanation("R/W enabled",
                 OxLoc.T(
                     "When a Mesh is read/write enabled, Unity uploads the Mesh data to GPU-addressable memory, but also keeps it in CPU-addressable memory. In most cases, you should disable this option to save runtime memory usage.",
-                    "Com read/write ativado, a Unity envia a malha para a memória da GPU mas também a mantém na memória da CPU. Na maioria dos casos, desative para economizar memória em runtime."));
+                    "Com read/write ativado, a Unity envia a malha para a memória da GPU mas também a mantém na memória da CPU. Na maioria dos casos, desative para economizar memória em runtime."),
+                OxLoc.T("ideal: no", "ideal: não"));
             BuildExplanation("Polygons optimized",
                 OxLoc.T(
                     "Optimize the order of polygons in the mesh to make better use of the GPUs internal caches to improve rendering performance.",
-                    "Otimiza a ordem dos polígonos da malha para aproveitar melhor os caches internos da GPU e melhorar a performance de renderização."));
+                    "Otimiza a ordem dos polígonos da malha para aproveitar melhor os caches internos da GPU e melhorar a performance de renderização."),
+                OxLoc.T("ideal: yes", "ideal: sim"));
             BuildExplanation("Vertices optimized",
                 OxLoc.T(
                     "Optimize the order of vertices in the mesh to make better use of the GPUs internal caches to improve rendering performance.",
-                    "Otimiza a ordem dos vértices da malha para aproveitar melhor os caches internos da GPU e melhorar a performance de renderização."));
+                    "Otimiza a ordem dos vértices da malha para aproveitar melhor os caches internos da GPU e melhorar a performance de renderização."),
+                OxLoc.T("ideal: yes", "ideal: sim"));
             BuildExplanation("Mesh compression",
                 OxLoc.T(
                     "Compressing meshes will decrease the final build size, but more compression introduces more artifacts in vertex data.",
-                    "Comprimir malhas reduz o tamanho final do build, mas mais compressão introduz mais artefatos nos vértices."));
+                    "Comprimir malhas reduz o tamanho final do build, mas mais compressão introduz mais artefatos nos vértices."),
+                OxLoc.T("ideal: High", "ideal: High"));
             BuildExplanation("Animation compression",
                 OxLoc.T(
                     "Compressing animations will decrease the final build size, but more compression introduces more artifacts in the animations.",
-                    "Comprimir animações reduz o tamanho final do build, mas mais compressão introduz mais artefatos nas animações."));
+                    "Comprimir animações reduz o tamanho final do build, mas mais compressão introduz mais artefatos nas animações."),
+                OxLoc.T("ideal: not Off", "ideal: não Off"));
         }
 
-        static void BuildExplanation(string label, string explanation)
+        static void BuildExplanation(string label, string explanation, string ideal = null)
         {
             EditorGUILayout.BeginHorizontal();
             GUILayout.Label(label, EditorStyles.boldLabel, GUILayout.Width(130));
-            GUILayout.Label(explanation, EditorStyles.wordWrappedLabel);
+            GUILayout.Label(
+                string.IsNullOrEmpty(ideal) ? explanation : $"{explanation}  ({ideal})",
+                EditorStyles.wordWrappedLabel);
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
         }

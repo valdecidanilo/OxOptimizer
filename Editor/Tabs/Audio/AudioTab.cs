@@ -28,8 +28,8 @@ namespace OxenteGames.OxOptimizer.Tabs
             EditorGUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
             EditorGUILayout.BeginVertical();
-            GUILayout.Label(OxLoc.T("Press \"Analyze audio\" button to load the table.", "Clique em \"Analisar áudio\" para carregar a tabela."));
-            GUILayout.Label(OxLoc.T("Press it again when you need to refresh the data.", "Clique de novo quando precisar atualizar os dados."));
+            //GUILayout.Label(OxLoc.T("Press \"Analyze audio\" button to load the table.", "Clique em \"Analisar áudio\" para carregar a tabela."));
+            //GUILayout.Label(OxLoc.T("Press it again when you need to refresh the data.", "Clique de novo quando precisar atualizar os dados."));
             EditorGUILayout.EndVertical();
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
@@ -64,23 +64,26 @@ namespace OxenteGames.OxOptimizer.Tabs
                     "Este utilitário dá uma visão geral dos áudios usados no projeto. Otimizando as configurações, você consegue reduzir consideravelmente o tamanho final do build e o uso de memória em runtime. Clique em um áudio para selecioná-lo na aba Project."),
                 EditorStyles.wordWrappedLabel);
 
+            OxGui.GradeLegend();
 
             BuildExplanation("Load type",
                 OxLoc.T(
                     "The default option, Decompress On Load, is good for audio clips that require precision when played, for example, audio effects or dialogues. For background audio clips Compressed In Memory is recommended, since it reduces the runtime memory, though audio playback is less precise and may introduce latency.",
-                    "A opção padrão, Decompress On Load, é boa para áudios que exigem precisão ao tocar, como efeitos e diálogos. Para áudios de fundo, Compressed In Memory é recomendado por reduzir a memória em runtime, embora a reprodução seja menos precisa e possa ter latência."));
+                    "A opção padrão, Decompress On Load, é boa para áudios que exigem precisão ao tocar, como efeitos e diálogos. Para áudios de fundo, Compressed In Memory é recomendado por reduzir a memória em runtime, embora a reprodução seja menos precisa e possa ter latência."),
+                OxLoc.T("ideal: not Decompress on load", "ideal: não Decompress on load"));
             BuildExplanation("Quality",
                 OxLoc.T(
                     "Lowering the quality will reduce the build size. You can experiment with a lower audio quality for background audio.",
-                    "Reduzir a qualidade diminui o tamanho do build. Experimente uma qualidade menor nos áudios de fundo."));
+                    "Reduzir a qualidade diminui o tamanho do build. Experimente uma qualidade menor nos áudios de fundo."),
+                OxLoc.T("ideal: ≤ 70", "ideal: ≤ 70"));
         }
 
-        static void BuildExplanation(string label, string explanation)
+        static void BuildExplanation(string label, string explanation, string ideal = null)
         {
             EditorGUILayout.BeginHorizontal();
             GUILayout.Label(label, EditorStyles.boldLabel, GUILayout.Width(130));
             GUILayout.Label(
-                explanation,
+                string.IsNullOrEmpty(ideal) ? explanation : $"{explanation}  ({ideal})",
                 EditorStyles.wordWrappedLabel);
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();

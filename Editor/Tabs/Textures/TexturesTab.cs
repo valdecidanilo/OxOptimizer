@@ -28,8 +28,8 @@ namespace OxenteGames.OxOptimizer.Tabs
             EditorGUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
             EditorGUILayout.BeginVertical();
-            GUILayout.Label(OxLoc.T("Press \"Analyze textures\" button to load the table.", "Clique em \"Analisar texturas\" para carregar a tabela."));
-            GUILayout.Label(OxLoc.T("Press it again when you need to refresh the data.", "Clique de novo quando precisar atualizar os dados."));
+            //GUILayout.Label(OxLoc.T("Press \"Analyze textures\" button to load the table.", "Clique em \"Analisar texturas\" para carregar a tabela."));
+            //GUILayout.Label(OxLoc.T("Press it again when you need to refresh the data.", "Clique de novo quando precisar atualizar os dados."));
             EditorGUILayout.EndVertical();
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
@@ -64,29 +64,34 @@ namespace OxenteGames.OxOptimizer.Tabs
                     "Este utilitário dá uma visão geral das texturas usadas no projeto. Otimizando as configurações, você consegue reduzir consideravelmente o tamanho final do build. Clique em uma textura para selecioná-la na aba Project."),
                 EditorStyles.wordWrappedLabel);
 
+            OxGui.GradeLegend();
 
             BuildExplanation("Max size",
                 OxLoc.T(
                     "Decrease the max size as much as possible while the texture still looks good in game. You most likely don't need the default 2048 set by Unity.",
-                    "Reduza o tamanho máximo o quanto der, desde que a textura continue boa no jogo. Você provavelmente não precisa do padrão 2048 da Unity."));
+                    "Reduza o tamanho máximo o quanto der, desde que a textura continue boa no jogo. Você provavelmente não precisa do padrão 2048 da Unity."),
+                OxLoc.T("ideal: ≤ 1024", "ideal: ≤ 1024"));
             BuildExplanation("Compression",
-                OxLoc.T("Lower quality will decrease the final build size.", "Qualidade menor reduz o tamanho final do build."));
+                OxLoc.T("Lower quality will decrease the final build size.", "Qualidade menor reduz o tamanho final do build."),
+                OxLoc.T("ideal: not Uncompressed", "ideal: não Uncompressed"));
             BuildExplanation("Crunch compression",
                 OxLoc.T(
                     "All the textures with crunch compression enabled will be compressed together, decreasing the final build size.",
-                    "Todas as texturas com crunch ativado são comprimidas juntas, reduzindo o tamanho final do build."));
+                    "Todas as texturas com crunch ativado são comprimidas juntas, reduzindo o tamanho final do build."),
+                OxLoc.T("ideal: yes", "ideal: sim"));
             BuildExplanation("Crunch comp. quality",
                 OxLoc.T(
                     "A higher compression quality means larger textures and longer compression times.",
-                    "Qualidade de compressão maior significa texturas maiores e compressão mais demorada."));
+                    "Qualidade de compressão maior significa texturas maiores e compressão mais demorada."),
+                OxLoc.T("ideal: ≤ 70", "ideal: ≤ 70"));
         }
 
-        static void BuildExplanation(string label, string explanation)
+        static void BuildExplanation(string label, string explanation, string ideal = null)
         {
             EditorGUILayout.BeginHorizontal();
             GUILayout.Label(label, EditorStyles.boldLabel, GUILayout.Width(130));
             GUILayout.Label(
-                explanation,
+                string.IsNullOrEmpty(ideal) ? explanation : $"{explanation}  ({ideal})",
                 EditorStyles.wordWrappedLabel);
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();

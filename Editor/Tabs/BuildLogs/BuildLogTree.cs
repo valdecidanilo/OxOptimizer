@@ -116,10 +116,10 @@ namespace OxenteGames.OxOptimizer.Tabs
             switch (column)
             {
                 case 0:
-                    GUI.Label(cellRect, $"{item.data.size} {item.data.sizeUnit}");
+                    OxGui.GradedLabel(cellRect, $"{item.data.size} {item.data.sizeUnit}", item.data.SizeGrade);
                     break;
                 case 1:
-                    GUI.Label(cellRect, $"{item.data.sizePercentage}%");
+                    OxGui.GradedLabel(cellRect, $"{item.data.sizePercentage}%", item.data.SizeGrade);
                     break;
                 case 2:
                     GUI.Label(cellRect, item.data.filePath);

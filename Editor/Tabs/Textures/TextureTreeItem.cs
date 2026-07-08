@@ -37,6 +37,32 @@ namespace OxenteGames.OxOptimizer.Tabs
             }
         }
 
+        // Ideal targets for WebGL (see the explanations at the bottom of the Textures tab).
+        public const int IdealMaxSize = 1024;
+        public const int IdealCrunchQuality = 70;
+
+        public OxGui.Grade MaxSizeGrade =>
+            TextureMaxSize <= IdealMaxSize ? OxGui.Grade.Ok
+            : TextureMaxSize <= 2048 ? OxGui.Grade.Warning
+            : OxGui.Grade.Bad;
+
+        public OxGui.Grade CompressionGrade =>
+            TextureCompression == TextureImporterCompression.Uncompressed ? OxGui.Grade.Bad : OxGui.Grade.Ok;
+
+        public OxGui.Grade CrunchGrade => HasCrunchCompression ? OxGui.Grade.Ok : OxGui.Grade.Warning;
+
+        public OxGui.Grade CrunchQualityGrade
+        {
+            get
+            {
+                if (!HasCrunchCompression)
+                    return OxGui.Grade.Ok; // quality is irrelevant when crunch is disabled
+                if (CrunchCompressionQuality <= IdealCrunchQuality)
+                    return OxGui.Grade.Ok;
+                return CrunchCompressionQuality <= 85 ? OxGui.Grade.Warning : OxGui.Grade.Bad;
+            }
+        }
+
         private readonly TextureImporter _textureImporter;
         private readonly TextureImporterPlatformSettings _platformSettings;
 

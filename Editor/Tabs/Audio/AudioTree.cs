@@ -119,10 +119,10 @@ namespace OxenteGames.OxOptimizer.Tabs
                     GUI.Label(cellRect, item.data.AudioName);
                     break;
                 case 1:
-                    GUI.Label(cellRect, item.data.LoadType);
+                    OxGui.GradedLabel(cellRect, item.data.LoadType, item.data.LoadTypeGrade);
                     break;
                 case 2:
-                    GUI.Label(cellRect, item.data.Quality.ToString());
+                    OxGui.GradedLabel(cellRect, item.data.Quality.ToString(), item.data.QualityGrade);
                     break;
             }
         }

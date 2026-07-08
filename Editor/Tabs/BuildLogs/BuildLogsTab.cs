@@ -26,22 +26,23 @@ namespace OxenteGames.OxOptimizer.Tabs
         private static int _pendingBuildReportLineIndex;
         private static int _pendingIdIncrement;
 
+        // Per-file size grades from the last successful analysis, so the Export tab's
+        // optimization score matches the table colors. Null until the logs are analyzed.
+        private static List<OxGui.Grade> _analyzedFileGrades;
+
+        /// <summary>True once the build logs have been analyzed at least once this session.</summary>
+        public static bool HasAnalysis => _analyzedFileGrades != null;
+
+        /// <summary>Size grade of every file found in the last analysis (same as the table colors).</summary>
+        public static IReadOnlyList<OxGui.Grade> AnalyzedFileGrades => _analyzedFileGrades;
+
         private const int BuildLogBatchSize = 25;
 
         public static void RenderGUI()
         {
+            EnsureTree();
+
             var rect = EditorGUILayout.BeginVertical(GUILayout.MinHeight(300));
-            GUILayout.FlexibleSpace();
-            EditorGUILayout.BeginHorizontal();
-            GUILayout.FlexibleSpace();
-            EditorGUILayout.BeginVertical();
-            GUILayout.Label(OxLoc.T(
-                "Press \"Analyze build logs\" button, but be sure the project was built at least once on this machine.",
-                "Clique em \"Analisar logs de build\" - o projeto precisa ter sido buildado ao menos uma vez nesta maquina."));
-            GUILayout.Label(OxLoc.T("Press it again when you need to refresh the data.", "Clique de novo quando precisar atualizar os dados."));
-            EditorGUILayout.EndVertical();
-            GUILayout.FlexibleSpace();
-            EditorGUILayout.EndHorizontal();
             GUILayout.FlexibleSpace();
             _buildLogTree?.OnGUI(rect);
             if (_isAnalyzing)
@@ -51,6 +52,13 @@ namespace OxenteGames.OxOptimizer.Tabs
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.Space(5);
+
+            /*GUILayout.Label(OxLoc.T(
+                "Press \"Analyze build logs\" button, but be sure the project was built at least once on this machine.",
+                "Clique em \"Analisar logs de build\" - o projeto precisa ter sido buildado ao menos uma vez nesta maquina."), EditorStyles.wordWrappedMiniLabel);
+            GUILayout.Label(OxLoc.T("Press it again when you need to refresh the data.", "Clique de novo quando precisar atualizar os dados."), EditorStyles.wordWrappedMiniLabel);
+            */
+            EditorGUILayout.Space(3);
 
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button(_isAnalyzing ? OxLoc.T("Analyzing...", "Analisando...") : OxLoc.T("Analyze build logs", "Analisar logs de build"), GUILayout.Width(200)))
@@ -90,6 +98,12 @@ namespace OxenteGames.OxOptimizer.Tabs
                     "This utility analyzes the Build Report from the Editor.log file. It will display all the files included in your final build, and the memory they occupy. You can use this utility to detect more opportunities to decrease the final build size. There may be textures that still occupy a lot of memory, uncompressed sounds, or stuff forgotten in the Resources folders that gets included in the build.",
                     "Este utilitario analisa o Build Report do arquivo Editor.log. Ele mostra todos os arquivos incluidos no build final e a memoria que ocupam. Use-o para encontrar mais oportunidades de reduzir o tamanho do build: texturas que ainda ocupam muita memoria, sons sem compressao, ou coisas esquecidas em pastas Resources que entram no build."),
                 EditorStyles.wordWrappedLabel);
+
+            GUILayout.Label(OxLoc.T(
+                $"Ideal: keep each file under {BuildLogTreeItem.IdealSizeMB} MB (colors follow the absolute size, which drops as you optimize). Files over {BuildLogTreeItem.IdealSizePercentage}% of the build are also flagged for dominating it.",
+                $"Ideal: manter cada arquivo abaixo de {BuildLogTreeItem.IdealSizeMB} MB (as cores seguem o tamanho absoluto, que cai conforme você otimiza). Arquivos acima de {BuildLogTreeItem.IdealSizePercentage}% do build também são marcados por dominarem o build."),
+                EditorStyles.wordWrappedMiniLabel);
+            OxGui.GradeLegend();
         }
 
         private static void DrawLoadingOverlay(Rect rect)
@@ -266,11 +280,26 @@ namespace OxenteGames.OxOptimizer.Tabs
             }
         }
 
-        private static void CompleteAnalysis()
+        /// <summary>
+        /// Creates an empty tree (header + columns, no rows) so the list is visible in the tab
+        /// before any analysis. Analyzing later just repopulates it with the build files.
+        /// </summary>
+        private static void EnsureTree()
         {
-            EditorApplication.update -= UpdateAnalyzeBuildLogs;
+            if (_buildLogTree != null)
+            {
+                return;
+            }
 
-            var treeModel = new TreeModel<BuildLogTreeItem>(_pendingTreeElements);
+            BuildTree(new List<BuildLogTreeItem>
+            {
+                new BuildLogTreeItem("Root", -1, 0, 0f, "", 0f, "")
+            });
+        }
+
+        private static void BuildTree(List<BuildLogTreeItem> elements)
+        {
+            var treeModel = new TreeModel<BuildLogTreeItem>(elements);
             var treeViewState = new TreeViewState();
             _multiColumnHeaderState = _multiColumnHeaderState ?? new MultiColumnHeaderState(new[]
             {
@@ -280,6 +309,18 @@ namespace OxenteGames.OxOptimizer.Tabs
                 new MultiColumnHeaderState.Column() {headerContent = new GUIContent() {text = "Path"}, width = 300, minWidth = 200, canSort = true},
             });
             _buildLogTree = new BuildLogTree(treeViewState, new MultiColumnHeader(_multiColumnHeaderState), treeModel);
+        }
+
+        private static void CompleteAnalysis()
+        {
+            EditorApplication.update -= UpdateAnalyzeBuildLogs;
+
+            BuildTree(_pendingTreeElements);
+
+            _analyzedFileGrades = _pendingTreeElements
+                .Where(item => item.depth == 0)
+                .Select(item => item.SizeGrade)
+                .ToList();
 
             _pendingBuildReportLines = null;
             _pendingTreeElements = null;

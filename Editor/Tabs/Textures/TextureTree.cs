@@ -131,16 +131,16 @@ namespace OxenteGames.OxOptimizer.Tabs
                     GUI.Label(cellRect, item.data.TextureType.ToString());
                     break;
                 case 2:
-                    GUI.Label(cellRect, item.data.TextureMaxSize.ToString());
+                    OxGui.GradedLabel(cellRect, item.data.TextureMaxSize.ToString(), item.data.MaxSizeGrade);
                     break;
                 case 3:
-                    GUI.Label(cellRect, item.data.TextureCompressionName);
+                    OxGui.GradedLabel(cellRect, item.data.TextureCompressionName, item.data.CompressionGrade);
                     break;
                 case 4:
-                    GUI.Label(cellRect, item.data.HasCrunchCompression ? "yes" : "no");
+                    OxGui.GradedLabel(cellRect, item.data.HasCrunchCompression ? "yes" : "no", item.data.CrunchGrade);
                     break;
                 case 5:
-                    GUI.Label(cellRect, item.data.CrunchCompressionQuality.ToString());
+                    OxGui.GradedLabel(cellRect, item.data.CrunchCompressionQuality.ToString(), item.data.CrunchQualityGrade);
                     break;
             }
         }

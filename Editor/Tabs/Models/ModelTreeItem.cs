@@ -56,6 +56,30 @@ namespace OxenteGames.OxOptimizer.Tabs
             }
         }
 
+        // Ideal targets (see the explanations at the bottom of the Models tab).
+        public OxGui.Grade ReadWriteGrade => IsReadWriteEnabled ? OxGui.Grade.Warning : OxGui.Grade.Ok;
+        public OxGui.Grade PolygonsGrade => ArePolygonsOptimized ? OxGui.Grade.Ok : OxGui.Grade.Warning;
+        public OxGui.Grade VerticesGrade => AreVerticesOptimized ? OxGui.Grade.Ok : OxGui.Grade.Warning;
+
+        public OxGui.Grade MeshCompressionGrade
+        {
+            get
+            {
+                switch (MeshCompression)
+                {
+                    case ModelImporterMeshCompression.High:
+                        return OxGui.Grade.Ok;
+                    case ModelImporterMeshCompression.Off:
+                        return OxGui.Grade.Bad;
+                    default:
+                        return OxGui.Grade.Warning;
+                }
+            }
+        }
+
+        public OxGui.Grade AnimationCompressionGrade =>
+            AnimationCompression == ModelImporterAnimationCompression.Off ? OxGui.Grade.Warning : OxGui.Grade.Ok;
+
         private readonly ModelImporter _modelImporter;
 
         public ModelTreeItem(string name, int depth, int id, string modelPath, ModelImporter modelImporter) : base(name, depth, id)

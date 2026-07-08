@@ -72,7 +72,7 @@ namespace OxenteGames.OxOptimizer
         void RenderFooter()
         {
             EditorGUILayout.BeginHorizontal();
-            GUILayout.Label("OxenteGames  •  v" + Version, EditorStyles.miniLabel);
+            GUILayout.Label("OxenteGames", EditorStyles.miniLabel);
             GUILayout.FlexibleSpace();
             if (GUILayout.Button("GitHub", EditorStyles.miniButton, GUILayout.Width(70)))
                 Application.OpenURL(RepositoryUrl);

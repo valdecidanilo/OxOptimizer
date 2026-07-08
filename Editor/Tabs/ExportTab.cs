@@ -17,15 +17,24 @@ namespace OxenteGames.OxOptimizer.Tabs
         private static OptimizationScore _cachedScore;
         private static double _lastScoreRefreshTime = -ScoreRefreshIntervalSeconds;
 
+        // Weight reserved for the build-size grade while it is still pending (Build Logs
+        // not analyzed yet). Big enough that the gray "missing" slice is clearly visible.
+        private const float BuildSizePendingWeight = 5f;
+
         private struct OptimizationScore
         {
             public float PassedWeight;
             public float TotalWeight;
+            public float PendingWeight;
             public int PassedChecks;
             public int TotalChecks;
+            public int PendingChecks;
 
             public float Score => TotalWeight <= 0f ? 0f : PassedWeight / TotalWeight;
             public int Percentage => Mathf.RoundToInt(Score * 100f);
+
+            public float PassedFraction => TotalWeight <= 0f ? 0f : PassedWeight / TotalWeight;
+            public float PendingFraction => TotalWeight <= 0f ? 0f : PendingWeight / TotalWeight;
         }
 
         public static void RenderGUI()
@@ -100,33 +109,45 @@ namespace OxenteGames.OxOptimizer.Tabs
             const float height = 108f;
             var rect = GUILayoutUtility.GetRect(0f, height, GUILayout.ExpandWidth(true));
 
-            EditorGUI.DrawRect(rect, OxGui.Dark);
-
-            var border = new Rect(rect.x, rect.y, rect.width, 2f);
-            EditorGUI.DrawRect(border, OxGui.Accent);
-
-            var titleRect = new Rect(rect.x + 18f, rect.y + 16f, rect.width * 0.55f, 24f);
-            GUI.Label(titleRect, OxLoc.T("Overall optimization", "Visao geral da otimizacao"), EditorStyles.boldLabel);
-
-            var subtitleRect = new Rect(rect.x + 18f, rect.y + 44f, rect.width * 0.6f, 42f);
-            GUI.Label(subtitleRect, OxLoc.T(
-                $"{stats.PassedChecks} of {stats.TotalChecks} project checks are already optimized.",
-                $"{stats.PassedChecks} de {stats.TotalChecks} verificacoes do projeto ja estao otimizadas."),
-                EditorStyles.wordWrappedMiniLabel);
-
-            var gaugeRect = new Rect(rect.xMax - 96f, rect.y + 12f, 72f, 72f);
-            DrawCircularGauge(gaugeRect, stats.Score);
+            var gaugeRect = new Rect(rect.x + 18f, rect.y + 12f, 72f, 72f);
+            DrawCircularGauge(gaugeRect, stats.PassedFraction, stats.PendingFraction);
 
             var percentageRect = new Rect(gaugeRect.x - 2f, gaugeRect.y + 76f, gaugeRect.width + 4f, 18f);
             GUI.Label(percentageRect, OxLoc.T(
                 $"{stats.Percentage}% optimized",
                 $"{stats.Percentage}% otimizado"),
                 EditorStyles.centeredGreyMiniLabel);
+
+            var textX = gaugeRect.xMax + 18f;
+            var textWidth = rect.xMax - textX - 18f;
+
+            var titleRect = new Rect(textX, rect.y + 16f, textWidth, 24f);
+            GUI.Label(titleRect, OxLoc.T("Overall optimization", "Visao geral da otimizacao"), EditorStyles.boldLabel);
+
+            var subtitleRect = new Rect(textX, rect.y + 44f, textWidth, 48f);
+            var subtitle = OxLoc.T(
+                $"{stats.PassedChecks} of {stats.TotalChecks} project checks are already optimized.",
+                $"{stats.PassedChecks} de {stats.TotalChecks} verificacoes do projeto ja estao otimizadas.");
+            if (stats.PendingChecks > 0)
+            {
+                subtitle += OxLoc.T(
+                    " Analyze the Build logs to grade the build size (gray).",
+                    " Analise os Build logs para avaliar o tamanho do build (cinza).");
+            }
+            GUI.Label(subtitleRect, subtitle, EditorStyles.wordWrappedMiniLabel);
         }
 
-        private static void DrawCircularGauge(Rect rect, float progress)
+        /// <summary>
+        /// Donut gauge with three slices: green = passed checks, gray = checks still pending
+        /// (they need the Build Logs analysis), and the dark base = failed checks. Only the
+        /// ring is colored; the panel content stays neutral.
+        /// </summary>
+        private static void DrawCircularGauge(Rect rect, float passedFraction, float pendingFraction)
         {
-            progress = Mathf.Clamp01(progress);
+            passedFraction = Mathf.Clamp01(passedFraction);
+            pendingFraction = Mathf.Clamp01(pendingFraction);
+            // Never let the two colored slices overlap the same arc.
+            pendingFraction = Mathf.Min(pendingFraction, 1f - passedFraction);
 
             var center = rect.center;
             var outerRadius = rect.width * 0.5f;
@@ -135,33 +156,50 @@ namespace OxenteGames.OxOptimizer.Tabs
             Handles.BeginGUI();
             var previousColor = Handles.color;
 
+            // Dark base = the "failed" slice.
             Handles.color = new Color(OxGui.Dark.r, OxGui.Dark.g, OxGui.Dark.b, 1f);
             Handles.DrawSolidDisc(center, Vector3.forward, outerRadius);
 
             Handles.color = new Color(1f, 1f, 1f, 0.08f);
             Handles.DrawWireDisc(center, Vector3.forward, outerRadius - 0.5f);
 
-            if (progress > 0f)
+            if (passedFraction > 0f)
             {
                 Handles.color = OxGui.Accent;
-                Handles.DrawSolidArc(center, Vector3.forward, Vector3.up, 360f * progress, outerRadius);
+                Handles.DrawSolidArc(center, Vector3.forward, Vector3.up, 360f * passedFraction, outerRadius);
             }
 
-            Handles.color = new Color(OxGui.Dark.r, OxGui.Dark.g, OxGui.Dark.b, 1f);
+            if (pendingFraction > 0f)
+            {
+                // Draw the pending (gray) slice at the tail of the ring.
+                var pendingAngle = 360f * pendingFraction;
+                var pendingFrom = Quaternion.AngleAxis(360f - pendingAngle, Vector3.forward) * Vector3.up;
+                Handles.color = OxGui.Pending;
+                Handles.DrawSolidArc(center, Vector3.forward, pendingFrom, pendingAngle, outerRadius);
+            }
+
+            // Punch the donut hole with the editor's background color so the center stays neutral.
+            var backgroundColor = EditorGUIUtility.isProSkin
+                ? (Color)new Color32(56, 56, 56, 255)
+                : (Color)new Color32(194, 194, 194, 255);
+            Handles.color = backgroundColor;
             Handles.DrawSolidDisc(center, Vector3.forward, innerRadius);
 
             Handles.color = previousColor;
             Handles.EndGUI();
 
-            GUI.Label(rect, $"{Mathf.RoundToInt(progress * 100f)}%", new GUIStyle(EditorStyles.boldLabel)
+            var percentageStyle = new GUIStyle(EditorStyles.boldLabel)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = 16,
-                normal =
-                {
-                    textColor = Color.white
-                }
-            });
+                fontSize = 16
+            };
+            // Keep the text green in every state so hovering the mouse doesn't recolor it.
+            percentageStyle.normal.textColor = OxGui.Accent;
+            percentageStyle.hover.textColor = OxGui.Accent;
+            percentageStyle.active.textColor = OxGui.Accent;
+            percentageStyle.focused.textColor = OxGui.Accent;
+
+            GUI.Label(rect, $"{Mathf.RoundToInt(passedFraction * 100f)}%", percentageStyle);
         }
 
         private static OptimizationScore EvaluateOptimizationScore()
@@ -180,6 +218,7 @@ namespace OxenteGames.OxOptimizer.Tabs
             AddAudioChecks(ref stats);
             AddFontChecks(ref stats);
             AddModelChecks(ref stats);
+            AddBuildSizeChecks(ref stats);
 
             _cachedScore = stats;
             _lastScoreRefreshTime = now;
@@ -294,6 +333,28 @@ namespace OxenteGames.OxOptimizer.Tabs
                 {
                     AddCheck(true, modelImporter.meshCompression == ModelImporterMeshCompression.High, ref stats);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Grades the build size from the Build Logs data: a file counts as optimized when its
+        /// size grade is Ok (see <see cref="BuildLogTreeItem.SizeGrade"/>). While the logs haven't
+        /// been analyzed yet the grade is "pending" — it shows as the gray slice on the gauge.
+        /// </summary>
+        private static void AddBuildSizeChecks(ref OptimizationScore stats)
+        {
+            if (!BuildLogsTab.HasAnalysis)
+            {
+                stats.TotalChecks++;
+                stats.TotalWeight += BuildSizePendingWeight;
+                stats.PendingChecks++;
+                stats.PendingWeight += BuildSizePendingWeight;
+                return;
+            }
+
+            foreach (var grade in BuildLogsTab.AnalyzedFileGrades)
+            {
+                AddCheck(true, grade == OxGui.Grade.Ok, ref stats);
             }
         }
 
