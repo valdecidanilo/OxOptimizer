@@ -17,9 +17,11 @@ namespace OxenteGames.OxOptimizer.Tabs
         private static OptimizationScore _cachedScore;
         private static double _lastScoreRefreshTime = -ScoreRefreshIntervalSeconds;
 
-        // Weight reserved for the build-size grade while it is still pending (Build Logs
-        // not analyzed yet). Big enough that the gray "missing" slice is clearly visible.
-        private const float BuildSizePendingWeight = 5f;
+        // The build-size grade is worth this share of the whole gauge, both while it's pending
+        // (gray slice) and after the Build Logs analysis. Keeping the weight fixed means the gray
+        // slice is exactly what later turns green/dark — analyzing can't move the needle by more
+        // than the gray slice was showing.
+        private const float BuildSizeShare = 0.2f;
 
         private struct OptimizationScore
         {
@@ -337,25 +339,43 @@ namespace OxenteGames.OxOptimizer.Tabs
         }
 
         /// <summary>
-        /// Grades the build size from the Build Logs data: a file counts as optimized when its
-        /// size grade is Ok (see <see cref="BuildLogTreeItem.SizeGrade"/>). While the logs haven't
-        /// been analyzed yet the grade is "pending" — it shows as the gray slice on the gauge.
+        /// Grades the build size from the Build Logs data as a single group worth
+        /// <see cref="BuildSizeShare"/> of the whole gauge. While the logs haven't been analyzed
+        /// the whole group is "pending" (gray slice); once analyzed, that same weight is split
+        /// green/dark by the fraction of files whose size grade is Ok. Because the group weight is
+        /// identical in both states, resolving it can't move the score by more than the gray slice.
         /// </summary>
         private static void AddBuildSizeChecks(ref OptimizationScore stats)
         {
+            // AddBuildSizeChecks runs last, so stats.TotalWeight here is the weight of every other
+            // check. Size the group so it ends up as exactly BuildSizeShare of the final total.
+            var otherWeight = stats.TotalWeight;
+            var groupWeight = otherWeight <= 0f
+                ? 1f
+                : otherWeight * (BuildSizeShare / (1f - BuildSizeShare));
+
             if (!BuildLogsTab.HasAnalysis)
             {
                 stats.TotalChecks++;
-                stats.TotalWeight += BuildSizePendingWeight;
+                stats.TotalWeight += groupWeight;
                 stats.PendingChecks++;
-                stats.PendingWeight += BuildSizePendingWeight;
+                stats.PendingWeight += groupWeight;
                 return;
             }
 
-            foreach (var grade in BuildLogsTab.AnalyzedFileGrades)
+            var grades = BuildLogsTab.AnalyzedFileGrades;
+            if (grades.Count == 0)
             {
-                AddCheck(true, grade == OxGui.Grade.Ok, ref stats);
+                return; // build report had no gradable files
             }
+
+            var okCount = grades.Count(grade => grade == OxGui.Grade.Ok);
+            var okFraction = (float)okCount / grades.Count;
+
+            stats.TotalChecks += grades.Count;
+            stats.PassedChecks += okCount;
+            stats.TotalWeight += groupWeight;
+            stats.PassedWeight += groupWeight * okFraction;
         }
 
         private static void AddCheck(bool applicable, bool ok, ref OptimizationScore stats, float weight = 1f)
