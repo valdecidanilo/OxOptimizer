@@ -36,7 +36,7 @@ Start small (mobile browsers kill tabs that allocate too much upfront), grow geo
 `Window > Package Manager` → `+` → `Add package from git URL...`:
 
 ```
-https://github.com/OxenteGames/OxOptimizer.git#1.0.0
+https://github.com/valdecidanilo/OxOptimizer.git#1.0.0
 ```
 
 Requires Unity **2021.2+**. Editor-only — adds nothing to your builds.
