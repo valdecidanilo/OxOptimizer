@@ -130,6 +130,14 @@ namespace OxenteGames.OxOptimizer.Tabs
                 case 3:
                     OxGui.GradedLabel(cellRect, item.data.Quality.ToString(), item.data.QualityGrade);
                     break;
+                case 4:
+                    if (item.data.NeedsQualityFix &&
+                        GUI.Button(cellRect, $"{OxLoc.T("Fix", "Corrigir")} → {item.data.RecommendedQuality}"))
+                    {
+                        item.data.ApplyRecommendedQuality();
+                        Repaint();
+                    }
+                    break;
             }
         }
 

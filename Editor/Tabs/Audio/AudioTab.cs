@@ -16,6 +16,7 @@ namespace OxenteGames.OxOptimizer.Tabs
 
         private static bool _isAnalyzing;
         private static bool _includeFilesFromPackages;
+        private static List<AudioTreeItem> _treeItems;
         private static List<string> _pendingAudioPaths;
         private static List<AudioTreeItem> _pendingTreeElements;
         private static int _pendingPathIndex;
@@ -49,6 +50,15 @@ namespace OxenteGames.OxOptimizer.Tabs
                 AnalyzeAudio();
             }
 
+            var fixableCount = _isAnalyzing || _treeItems == null ? 0 : _treeItems.Count(item => item.NeedsQualityFix);
+            using (new EditorGUI.DisabledScope(fixableCount == 0))
+            {
+                if (GUILayout.Button(OxLoc.T($"Fix all qualities ({fixableCount})", $"Corrigir todas as qualidades ({fixableCount})"), GUILayout.Width(220)))
+                {
+                    FixAllQualities();
+                }
+            }
+
             var originalValue = EditorGUIUtility.labelWidth;
             EditorGUIUtility.labelWidth = 160;
             _includeFilesFromPackages = EditorGUILayout.Toggle(OxLoc.T("Include files from Packages", "Incluir arquivos de Packages"), _includeFilesFromPackages);
@@ -78,9 +88,9 @@ namespace OxenteGames.OxOptimizer.Tabs
                 OxLoc.T("ideal: not Decompress on load", "ideal: não Decompress on load"));
             BuildExplanation("Quality",
                 OxLoc.T(
-                    "Lowering the quality will reduce the build size. You can experiment with a lower audio quality for background audio.",
-                    "Reduzir a qualidade diminui o tamanho do build. Experimente uma qualidade menor nos áudios de fundo."),
-                OxLoc.T("ideal: ≤ 70", "ideal: ≤ 70"));
+                    "Lowering the quality will reduce the build size. Unity re-encodes the source on import, so a quality above the source's own bitrate only inflates the build with zero quality gain. The Fix button targets the quality that matches each clip's source bitrate (music 35-50, short effects 50-70).",
+                    "Reduzir a qualidade diminui o tamanho do build. A Unity re-encoda a fonte no import, então uma qualidade acima do bitrate do arquivo fonte só infla o build sem nenhum ganho de qualidade. O botão Corrigir mira a qualidade que casa com o bitrate da fonte de cada clipe (música 35-50, efeitos curtos 50-70)."),
+                OxLoc.T("ideal: match the source bitrate", "ideal: casar com o bitrate da fonte"));
         }
 
         static void BuildExplanation(string label, string explanation, string ideal = null)
@@ -156,6 +166,37 @@ namespace OxenteGames.OxOptimizer.Tabs
             }
 
             return usedAudioPaths.ToList();
+        }
+
+        private static void FixAllQualities()
+        {
+            if (_treeItems == null)
+                return;
+
+            var fixableItems = _treeItems.Where(item => item.NeedsQualityFix).ToList();
+            try
+            {
+                AssetDatabase.StartAssetEditing();
+                for (var i = 0; i < fixableItems.Count; i++)
+                {
+                    var item = fixableItems[i];
+                    EditorUtility.DisplayProgressBar(
+                        OxLoc.T("Fixing audio quality", "Corrigindo qualidade dos áudios"),
+                        item.AudioName,
+                        (float)i / fixableItems.Count);
+                    item.ApplyRecommendedQuality();
+                }
+            }
+            finally
+            {
+                AssetDatabase.StopAssetEditing();
+                EditorUtility.ClearProgressBar();
+            }
+
+            if (OxOptimizerWindow.EditorWindowInstance != null)
+            {
+                OxOptimizerWindow.EditorWindowInstance.Repaint();
+            }
         }
 
         public static void AnalyzeAudio()
@@ -250,6 +291,7 @@ namespace OxenteGames.OxOptimizer.Tabs
                 return;
             }
 
+            _treeItems = _pendingTreeElements.Where(item => item.depth == 0).ToList();
             var treeModel = new TreeModel<AudioTreeItem>(_pendingTreeElements);
             var treeViewState = new TreeViewState();
             if (_multiColumnHeaderState == null)
@@ -263,6 +305,7 @@ namespace OxenteGames.OxOptimizer.Tabs
                     new MultiColumnHeaderState.Column()
                         { headerContent = new GUIContent() { text = "Load type" }, width = 150, minWidth = 150, canSort = true },
                     new MultiColumnHeaderState.Column() { headerContent = new GUIContent() { text = "Quality" }, width = 60, minWidth = 60, canSort = true },
+                    new MultiColumnHeaderState.Column() { headerContent = new GUIContent() { text = "" }, width = 110, minWidth = 100, canSort = false },
                 });
             _audioCompressionTree = new AudioTree(treeViewState, new MultiColumnHeader(_multiColumnHeaderState), treeModel);
             _isAnalyzing = false;
