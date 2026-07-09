@@ -12,10 +12,10 @@ namespace OxenteGames.OxOptimizer.Tabs
 
         public int TextureMaxSize => _platformSettings.maxTextureSize;
         public int CrunchCompressionQuality => _platformSettings.compressionQuality;
-        public bool HasCrunchCompression => _textureImporter.crunchedCompression;
+        public bool HasCrunchCompression => _platformSettings.crunchedCompression;
         public TextureImporterFormat TextureFormat => _platformSettings.format;
         public TextureImporterType TextureType => _textureImporter.textureType;
-        public TextureImporterCompression TextureCompression => _textureImporter.textureCompression;
+        public TextureImporterCompression TextureCompression => _platformSettings.textureCompression;
 
         public string TextureCompressionName
         {
@@ -75,7 +75,13 @@ namespace OxenteGames.OxOptimizer.Tabs
             TextureName = Path.GetFileName(texturePath);
 
             _textureImporter = textureImporter;
-            _platformSettings = _textureImporter.GetPlatformTextureSettings("WebGL");
+            // GetPlatformTextureSettings returns the stored WebGL block even when the
+            // "Override for WebGL" toggle is off; Unity then actually uses the Default
+            // settings, so fall back to them to match what the inspector shows.
+            var webglSettings = _textureImporter.GetPlatformTextureSettings("WebGL");
+            _platformSettings = webglSettings.overridden
+                ? webglSettings
+                : _textureImporter.GetDefaultPlatformTextureSettings();
         }
     }
 }

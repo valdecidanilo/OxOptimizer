@@ -278,10 +278,15 @@ namespace OxenteGames.OxOptimizer.Tabs
                     continue;
                 }
 
-                var platformSettings = textureImporter.GetPlatformTextureSettings("WebGL");
-                AddCheck(true, textureImporter.crunchedCompression, ref stats, 3f);
+                // GetPlatformTextureSettings returns the stored WebGL block even when the
+                // override toggle is off; Unity then actually uses the Default settings.
+                var webglSettings = textureImporter.GetPlatformTextureSettings("WebGL");
+                var platformSettings = webglSettings.overridden
+                    ? webglSettings
+                    : textureImporter.GetDefaultPlatformTextureSettings();
+                AddCheck(true, platformSettings.crunchedCompression, ref stats, 3f);
                 AddCheck(true, IsTexturePowerOfTwo(textureImporter), ref stats);
-                AddCheck(true, textureImporter.crunchedCompression && platformSettings.compressionQuality <= 70, ref stats);
+                AddCheck(true, platformSettings.crunchedCompression && platformSettings.compressionQuality <= 70, ref stats);
                 AddCheck(true, platformSettings.maxTextureSize > 0 && platformSettings.maxTextureSize <= 1024, ref stats);
             }
         }

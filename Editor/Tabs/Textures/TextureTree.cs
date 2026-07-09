@@ -53,7 +53,7 @@ namespace OxenteGames.OxOptimizer.Tabs
                     items = items.Order(i => i.data.TextureCompressionName, ascending);
                     break;
                 case 4:
-                    items = items.Order(i => i.data.CrunchCompressionQuality, ascending);
+                    items = items.Order(i => i.data.HasCrunchCompression, ascending);
                     break;
                 case 5:
                     items = items.Order(i => i.data.CrunchCompressionQuality, ascending);
