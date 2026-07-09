@@ -15,7 +15,7 @@ namespace OxenteGames.OxOptimizer.Tabs
         public const int RecommendedInitialMemoryMB = 128;
         public const int RecommendedMaximumMemoryMB = 768;
         public const float RecommendedGeometricGrowthStep = 0.2f;
-        public const int RecommendedGeometricGrowthCapMB = 32;
+        public const int RecommendedGeometricGrowthCapMB = 96;
 
         public static void RenderGUI()
         {
@@ -73,8 +73,8 @@ namespace OxenteGames.OxOptimizer.Tabs
                 PlayerSettings.WebGL.memoryGeometricGrowthCap == RecommendedGeometricGrowthCapMB,
                 () => PlayerSettings.WebGL.memoryGeometricGrowthCap = RecommendedGeometricGrowthCapMB,
                 OxLoc.T(
-                    "Limits a single growth step to 32 MB, keeping each reallocation small enough for constrained devices.",
-                    "Limita cada passo de crescimento a 32 MB, mantendo cada realocação pequena o suficiente para aparelhos limitados."));
+                    "Limits a single growth step to 96 MB, keeping each reallocation small enough for constrained devices.",
+                    "Limita cada passo de crescimento a 96 MB, mantendo cada realocação pequena o suficiente para aparelhos limitados."));
 
             GUILayout.Space(15);
             EditorGUILayout.BeginHorizontal();

@@ -66,6 +66,11 @@ namespace OxenteGames.OxOptimizer.Tabs
 
             OxGui.GradeLegend();
 
+            BuildExplanation("Force to mono",
+                OxLoc.T(
+                    "Mixes multi-channel audio down to a single channel, halving the imported clip size. Most WebGL games don't need stereo, so keep it enabled unless a clip really depends on stereo separation.",
+                    "Mistura áudios multicanal em um único canal, reduzindo o tamanho do clipe importado pela metade. A maioria dos jogos WebGL não precisa de estéreo, então mantenha habilitado, a menos que o clipe realmente dependa da separação estéreo."),
+                OxLoc.T("ideal: enabled", "ideal: habilitado"));
             BuildExplanation("Load type",
                 OxLoc.T(
                     "The default option, Decompress On Load, is good for audio clips that require precision when played, for example, audio effects or dialogues. For background audio clips Compressed In Memory is recommended, since it reduces the runtime memory, though audio playback is less precise and may introduce latency.",
@@ -253,6 +258,8 @@ namespace OxenteGames.OxOptimizer.Tabs
                     // when adding a new column don't forget to check the sorting method, and the CellGUI method
                     new MultiColumnHeaderState.Column()
                         { headerContent = new GUIContent() { text = "Audio clip" }, width = 150, minWidth = 150, canSort = true },
+                    new MultiColumnHeaderState.Column()
+                        { headerContent = new GUIContent() { text = "Force to mono" }, width = 90, minWidth = 90, canSort = true },
                     new MultiColumnHeaderState.Column()
                         { headerContent = new GUIContent() { text = "Load type" }, width = 150, minWidth = 150, canSort = true },
                     new MultiColumnHeaderState.Column() { headerContent = new GUIContent() { text = "Quality" }, width = 60, minWidth = 60, canSort = true },

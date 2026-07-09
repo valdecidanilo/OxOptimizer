@@ -44,9 +44,12 @@ namespace OxenteGames.OxOptimizer.Tabs
                     items = items.Order(i => i.data.AudioName, ascending);
                     break;
                 case 1:
-                    items = items.Order(i => i.data.LoadType, ascending);
+                    items = items.Order(i => i.data.IsForceToMono, ascending);
                     break;
                 case 2:
+                    items = items.Order(i => i.data.LoadType, ascending);
+                    break;
+                case 3:
                     items = items.Order(i => i.data.Quality, ascending);
                     break;
             }
@@ -119,9 +122,12 @@ namespace OxenteGames.OxOptimizer.Tabs
                     GUI.Label(cellRect, item.data.AudioName);
                     break;
                 case 1:
-                    OxGui.GradedLabel(cellRect, item.data.LoadType, item.data.LoadTypeGrade);
+                    OxGui.GradedLabel(cellRect, item.data.IsForceToMono ? "yes" : "no", item.data.ForceToMonoGrade);
                     break;
                 case 2:
+                    OxGui.GradedLabel(cellRect, item.data.LoadType, item.data.LoadTypeGrade);
+                    break;
+                case 3:
                     OxGui.GradedLabel(cellRect, item.data.Quality.ToString(), item.data.QualityGrade);
                     break;
             }
