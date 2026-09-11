@@ -28,6 +28,18 @@ namespace OxenteGames.OxOptimizer.TreeLib
 		public event Action<IList<TreeViewItem>>  beforeDroppingDraggedItems;
 
 
+#if UNITY_2022_2_OR_NEWER
+		public TreeViewWithTreeModel (TreeViewState<int> state, TreeModel<T> model) : base (state)
+		{
+			Init (model);
+		}
+
+		public TreeViewWithTreeModel (TreeViewState<int> state, MultiColumnHeader multiColumnHeader, TreeModel<T> model)
+			: base(state, multiColumnHeader)
+		{
+			Init (model);
+		}
+#else
 		public TreeViewWithTreeModel (TreeViewState state, TreeModel<T> model) : base (state)
 		{
 			Init (model);
@@ -38,6 +50,7 @@ namespace OxenteGames.OxOptimizer.TreeLib
 		{
 			Init (model);
 		}
+#endif
 
 		void Init (TreeModel<T> model)
 		{
