@@ -6,6 +6,12 @@ using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 
+#if OXOPT_UNITY_GENERIC_TREEVIEW
+// Unity 6000.2+ deprecated the non-generic IMGUI TreeView types (CS0619).
+using TreeViewItem = UnityEditor.IMGUI.Controls.TreeViewItem<int>;
+using TreeViewState = UnityEditor.IMGUI.Controls.TreeViewState<int>;
+#endif
+
 namespace OxenteGames.OxOptimizer.Tabs
 {
     class ModelTree : TreeViewWithTreeModel<ModelTreeItem>
@@ -34,7 +40,7 @@ namespace OxenteGames.OxOptimizer.Tabs
             if (sortedColumns.Length == 0)
                 return;
 
-            var items = rootItem.children.Cast<TreeLib.TreeViewItem<ModelTreeItem>>().OrderBy(i => i.data.ModelName);
+            var items = rootItem.children.Cast<TreeLib.TreeElementViewItem<ModelTreeItem>>().OrderBy(i => i.data.ModelName);
             var sortedColumnIndex = sortedColumns[0];
             var ascending = multiColumnHeader.IsSortedAscending(sortedColumnIndex);
 
@@ -111,7 +117,7 @@ namespace OxenteGames.OxOptimizer.Tabs
 
         protected override void RowGUI(RowGUIArgs args)
         {
-            var item = (TreeLib.TreeViewItem<ModelTreeItem>)args.item;
+            var item = (TreeLib.TreeElementViewItem<ModelTreeItem>)args.item;
 
             for (int i = 0; i < args.GetNumVisibleColumns(); ++i)
             {
@@ -119,7 +125,7 @@ namespace OxenteGames.OxOptimizer.Tabs
             }
         }
 
-        private void CellGUI(Rect cellRect, TreeLib.TreeViewItem<ModelTreeItem> item, int column, ref RowGUIArgs args)
+        private void CellGUI(Rect cellRect, TreeLib.TreeElementViewItem<ModelTreeItem> item, int column, ref RowGUIArgs args)
         {
             CenterRectUsingSingleLineHeight(ref cellRect);
             switch (column)
@@ -153,3 +159,4 @@ namespace OxenteGames.OxOptimizer.Tabs
         }
     }
 }
+#pragma warning restore CS0619

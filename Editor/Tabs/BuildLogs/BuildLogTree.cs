@@ -6,6 +6,12 @@ using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 
+#if OXOPT_UNITY_GENERIC_TREEVIEW
+// Unity 6000.2+ deprecated the non-generic IMGUI TreeView types (CS0619).
+using TreeViewItem = UnityEditor.IMGUI.Controls.TreeViewItem<int>;
+using TreeViewState = UnityEditor.IMGUI.Controls.TreeViewState<int>;
+#endif
+
 namespace OxenteGames.OxOptimizer.Tabs
 {
     class BuildLogTree : TreeViewWithTreeModel<BuildLogTreeItem>
@@ -35,7 +41,7 @@ namespace OxenteGames.OxOptimizer.Tabs
             if (sortedColumns.Length == 0)
                 return;
 
-            var items = rootItem.children.Cast<OxenteGames.OxOptimizer.TreeLib.TreeViewItem<BuildLogTreeItem>>().OrderBy(i => i.data.size);
+            var items = rootItem.children.Cast<OxenteGames.OxOptimizer.TreeLib.TreeElementViewItem<BuildLogTreeItem>>().OrderBy(i => i.data.size);
             var sortedColumnIndex = sortedColumns[0];
             var ascending = multiColumnHeader.IsSortedAscending(sortedColumnIndex);
             switch (sortedColumnIndex)
@@ -102,7 +108,7 @@ namespace OxenteGames.OxOptimizer.Tabs
 
         protected override void RowGUI(RowGUIArgs args)
         {
-            var item = (OxenteGames.OxOptimizer.TreeLib.TreeViewItem<BuildLogTreeItem>) args.item;
+            var item = (OxenteGames.OxOptimizer.TreeLib.TreeElementViewItem<BuildLogTreeItem>) args.item;
 
             for (int i = 0; i < args.GetNumVisibleColumns(); ++i)
             {
@@ -110,7 +116,7 @@ namespace OxenteGames.OxOptimizer.Tabs
             }
         }
 
-        private void CellGUI(Rect cellRect, OxenteGames.OxOptimizer.TreeLib.TreeViewItem<BuildLogTreeItem> item, int column, ref RowGUIArgs args)
+        private void CellGUI(Rect cellRect, OxenteGames.OxOptimizer.TreeLib.TreeElementViewItem<BuildLogTreeItem> item, int column, ref RowGUIArgs args)
         {
             CenterRectUsingSingleLineHeight(ref cellRect);
             switch (column)
@@ -135,3 +141,4 @@ namespace OxenteGames.OxOptimizer.Tabs
         }
     }
 }
+#pragma warning restore CS0619

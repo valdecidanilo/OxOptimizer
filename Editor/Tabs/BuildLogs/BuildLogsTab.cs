@@ -11,6 +11,11 @@ using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
+#if OXOPT_UNITY_GENERIC_TREEVIEW
+// Unity 6000.2+ deprecated the non-generic IMGUI TreeView types (CS0619).
+using TreeViewState = UnityEditor.IMGUI.Controls.TreeViewState<int>;
+#endif
+
 namespace OxenteGames.OxOptimizer.Tabs
 {
     public class BuildLogsTab
