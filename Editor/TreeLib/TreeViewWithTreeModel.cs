@@ -8,6 +8,17 @@ using UnityEngine;
 namespace OxenteGames.OxOptimizer.TreeLib
 {
 
+#if UNITY_2022_2_OR_NEWER
+	internal class TreeViewItem<T> : TreeViewItem<int> where T : TreeElement
+	{
+		public T data { get; set; }
+
+		public TreeViewItem (int id, int depth, string displayName, T data) : base (id, depth, displayName)
+		{
+			this.data = data;
+		}
+	}
+#else
 	internal class TreeViewItem<T> : TreeViewItem where T : TreeElement
 	{
 		public T data { get; set; }
@@ -17,15 +28,24 @@ namespace OxenteGames.OxOptimizer.TreeLib
 			this.data = data;
 		}
 	}
+#endif
 
 	internal class TreeViewWithTreeModel<T> : TreeView where T : TreeElement
 	{
 		TreeModel<T> m_TreeModel;
+#if UNITY_2022_2_OR_NEWER
+		readonly List<TreeViewItem<int>> m_Rows = new List<TreeViewItem<int>>(100);
+#else
 		readonly List<TreeViewItem> m_Rows = new List<TreeViewItem>(100);
+#endif
 		public event Action treeChanged;
 
 		public TreeModel<T> treeModel { get { return m_TreeModel; } }
+#if UNITY_2022_2_OR_NEWER
+		public event Action<IList<TreeViewItem<int>>>  beforeDroppingDraggedItems;
+#else
 		public event Action<IList<TreeViewItem>>  beforeDroppingDraggedItems;
+#endif
 
 
 #if UNITY_2022_2_OR_NEWER
@@ -66,13 +86,17 @@ namespace OxenteGames.OxOptimizer.TreeLib
 			Reload ();
 		}
 
-		protected override TreeViewItem BuildRoot()
+		protected override TreeViewItem<int> BuildRoot()
 		{
 			int depthForHiddenRoot = -1;
 			return new TreeViewItem<T>(m_TreeModel.root.id, depthForHiddenRoot, m_TreeModel.root.name, m_TreeModel.root);
 		}
 
+#if UNITY_2022_2_OR_NEWER
+		protected override IList<TreeViewItem<int>> BuildRows (TreeViewItem<int> root)
+#else
 		protected override IList<TreeViewItem> BuildRows (TreeViewItem root)
+#endif
 		{
 			if (m_TreeModel.root == null)
 			{
@@ -97,7 +121,13 @@ namespace OxenteGames.OxOptimizer.TreeLib
 			return m_Rows;
 		}
 
-		void AddChildrenRecursive (T parent, int depth, IList<TreeViewItem> newRows)
+		void AddChildrenRecursive (T parent, int depth,
+#if UNITY_2022_2_OR_NEWER
+			IList<TreeViewItem<int>>
+#else
+			IList<TreeViewItem>
+#endif
+			newRows)
 		{
 			foreach (T child in parent.children)
 			{
@@ -118,7 +148,13 @@ namespace OxenteGames.OxOptimizer.TreeLib
 			}
 		}
 
-		void Search(T searchFromThis, string search, List<TreeViewItem> result)
+		void Search(T searchFromThis, string search,
+#if UNITY_2022_2_OR_NEWER
+			List<TreeViewItem<int>>
+#else
+			List<TreeViewItem>
+#endif
+			result)
 		{
 			if (string.IsNullOrEmpty(search))
 				throw new ArgumentException("Invalid search: cannot be null or empty", "search");
@@ -148,7 +184,13 @@ namespace OxenteGames.OxOptimizer.TreeLib
 			SortSearchResult(result);
 		}
 
-		protected virtual void SortSearchResult (List<TreeViewItem> rows)
+		protected virtual void SortSearchResult (
+#if UNITY_2022_2_OR_NEWER
+			List<TreeViewItem<int>>
+#else
+			List<TreeViewItem>
+#endif
+			rows)
 		{
 			rows.Sort ((x,y) => EditorUtility.NaturalCompare (x.displayName, y.displayName)); // sort by displayName by default, can be overriden for multicolumn solutions
 		}
@@ -190,7 +232,11 @@ namespace OxenteGames.OxOptimizer.TreeLib
 		protected override DragAndDropVisualMode HandleDragAndDrop (DragAndDropArgs args)
 		{
 			// Check if we can handle the current drag data (could be dragged in from other areas/windows in the editor)
+#if UNITY_2022_2_OR_NEWER
+			var draggedRows = DragAndDrop.GetGenericData(k_GenericDragID) as List<TreeViewItem<int>>;
+#else
 			var draggedRows = DragAndDrop.GetGenericData(k_GenericDragID) as List<TreeViewItem>;
+#endif
 			if (draggedRows == null)
 				return DragAndDropVisualMode.None;
 
@@ -222,7 +268,13 @@ namespace OxenteGames.OxOptimizer.TreeLib
 			}
 		}
 
-		public virtual void OnDropDraggedElementsAtIndex (List<TreeViewItem> draggedRows, T parent, int insertIndex)
+		public virtual void OnDropDraggedElementsAtIndex (
+#if UNITY_2022_2_OR_NEWER
+			List<TreeViewItem<int>>
+#else
+			List<TreeViewItem>
+#endif
+			draggedRows, T parent, int insertIndex)
 		{
 			if (beforeDroppingDraggedItems != null)
 				beforeDroppingDraggedItems (draggedRows);
@@ -237,9 +289,26 @@ namespace OxenteGames.OxOptimizer.TreeLib
 		}
 
 
-		bool ValidDrag(TreeViewItem parent, List<TreeViewItem> draggedItems)
+		bool ValidDrag(
+#if UNITY_2022_2_OR_NEWER
+			TreeViewItem<int>
+#else
+			TreeViewItem
+#endif
+			parent,
+#if UNITY_2022_2_OR_NEWER
+			List<TreeViewItem<int>>
+#else
+			List<TreeViewItem>
+#endif
+			draggedItems)
 		{
-			TreeViewItem currentParent = parent;
+#if UNITY_2022_2_OR_NEWER
+			TreeViewItem<int>
+#else
+			TreeViewItem
+#endif
+			currentParent = parent;
 			while (currentParent != null)
 			{
 				if (draggedItems.Contains(currentParent))
